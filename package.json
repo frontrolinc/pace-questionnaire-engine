@@ -1,0 +1,22 @@
+{
+  "name": "@frontrolinc/pace-questionnaire-engine",
+  "version": "1.0.0",
+  "description": "This engine will deliver all necessary questions and possible answers to the user interface, record the user responses and compute net scores of the questionnaires based on user's responses.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "release-it"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frontrolinc/pace-questionnaire-engine.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "release-it": "^17.1.1"
+  }
+}
