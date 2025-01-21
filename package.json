@@ -1,6 +1,6 @@
 {
   "name": "@frontrolinc/pace-questionnaire-engine",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "This engine will deliver all necessary questions and possible answers to the user interface, record the user responses and compute net scores of the questionnaires based on user's responses.",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "release-it": "^17.1.1"
+    "release-it": "^17.11.0"
   }
 }

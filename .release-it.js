@@ -14,7 +14,7 @@ module.exports = {
     assets: ["tar/*.tgz"], // assets to be included in the GitHub releases page
   },
   npm: {
-    publish: false,
+    publish: true,
   },
   hooks: {
     // runs lint before publishing
