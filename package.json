@@ -2,7 +2,9 @@
   "name": "@frontrolinc/pace-questionnaire-engine",
   "version": "1.0.3",
   "description": "This engine will deliver all necessary questions and possible answers to the user interface, record the user responses and compute net scores of the questionnaires based on user's responses.",
-  "main": "index.js",
+  "main": "index.cjs",
+  "module": "index.mjs",
+  "type" : "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "release-it"
