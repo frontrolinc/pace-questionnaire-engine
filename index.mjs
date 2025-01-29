@@ -1,7 +1,7 @@
 class QuestionnaireEngine {
 
   #objQuestionMapping = {};
-  #objQuestionAnswerMapping  = {};
+  #objQuestionAnswerMapping = {};
   #arrLevel1QuestionsIds = [];
   #arrRiskCategoryMapping = [];
   #linkedAnswerQuestionIds = {};
@@ -9,7 +9,7 @@ class QuestionnaireEngine {
   basicInfoScore = '';
   basicInfoIndicatorFlag = '';
 
-  constructor(questionnaires, responses, context, riskCategoryMapping, riskAssessmentDetails) {
+  constructor(questionnaires, responses, context, riskCategoryMapping, riskAssessmentDetails, contextCodes) {
     this.questionnaires = questionnaires;
     this.responses = responses;
     this.context = context;
@@ -17,6 +17,7 @@ class QuestionnaireEngine {
     this.answers = {};
     this.finalScore = 0;
     this.previousQuestionAnswerMapping = {};
+    this.contextCodes = contextCodes;
 
     const { questionMapping, level1QuestionIds, basicInfoQuestionId } = this.#initQuestionMapping(questionnaires);
     const { questionAnswerMapping, linkedAnswerQuestionIds } = this.#initQuestionAnswerMapping(responses);
@@ -49,12 +50,12 @@ class QuestionnaireEngine {
       const { question_id, answer_id, answer_scores, next_questionnaire_id } = responses[i];
       if (!this.answers[question_id]) {
         this.answers[question_id] = { answer_list: [], risk_score: 0 };
-      } 
+      }
       if (!questionAnswerMapping[question_id]) questionAnswerMapping[question_id] = {};
       if (!answer_scores) continue;
       questionAnswerMapping[question_id][answer_id] = responses[i];
       if (next_questionnaire_id) {
-        if(!linkedAnswerQuestionIds[question_id]) linkedAnswerQuestionIds[question_id] = {}; 
+        if (!linkedAnswerQuestionIds[question_id]) linkedAnswerQuestionIds[question_id] = {};
         linkedAnswerQuestionIds[question_id][answer_id] = next_questionnaire_id;
       }
     }
@@ -122,12 +123,13 @@ class QuestionnaireEngine {
         }
       }
       const sortedQuestions = level1QuestionAnswerMapping.sort((q1, q2) => (q1.display_sequence > q2.display_sequence) ? 1 : (q1.display_sequence < q2.display_sequence) ? -1 : 0);
-      return sortedQuestions;
+      const groupedQuestionsByContext = this.getGroupedDataByContext(sortedQuestions); 
+      return groupedQuestionsByContext;
     }
 
     if (currentQuestionId !== null && currentAnswerId !== null) {
       const answer = this.#objQuestionAnswerMapping[currentQuestionId][currentAnswerId];
-      
+
       if (!answer) {
         throw new Error('Please provide a valid answer id')
       }
@@ -155,7 +157,7 @@ class QuestionnaireEngine {
   updateScores(questionId, answerIdList) {
     const question = this.#objQuestionMapping[questionId];
 
-    if(!question) {
+    if (!question) {
       throw new Error('Please provide a valid question id')
     }
 
@@ -174,11 +176,11 @@ class QuestionnaireEngine {
 
     answerIdList.forEach(answerId => {
       const answer = this.#objQuestionAnswerMapping[questionId][answerId];
-      
+
       if (!answer) {
         throw new Error('Please provide a valid answer id')
       }
-      
+
       const { answer_scores = [], indicator_flag = '', trigger_list = [], risk_list = [] } = answer;
       arrIndicatorFlag.push(indicator_flag);
 
@@ -200,9 +202,9 @@ class QuestionnaireEngine {
             this.#objQuestionAnswerMapping[questionId][answerId][`answer_score`] = score;
           }
         });
-      }  
+      }
     });
-  
+
     let score;
     switch (score_logic) {
       case 'MAX':
@@ -233,7 +235,7 @@ class QuestionnaireEngine {
     let assigned_risk_score = this.finalScore;
     const { contract_value = 0, contract_type = '' } = this.context;
     let risk_category = '', risk_category_message = '';
-    
+
     if (calculated_risk_score < 50 && contract_value > 10000000) {
       assigned_risk_score = 50
       risk_category_message = 'If an opportunity/project has an estimated contract value of > $10M USD then a minimum total score of 50 will apply resulting in a C2 category.'
@@ -254,6 +256,26 @@ class QuestionnaireEngine {
     return { calculated_risk_score, assigned_risk_score, risk_category, risk_category_message };
   }
 
+  getGroupedDataByContext(data) {
+
+    const uniqueContextCodes = new Set();
+    data.forEach(item => {
+      item.context_code.forEach(ctx => {
+        uniqueContextCodes.add(ctx.context_code);
+      });
+    });
+
+    const groupedData = Array.from(uniqueContextCodes).map(context_code => {
+      return {
+        context_code,
+        context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
+        questions: data.filter(q => q.context_code.some(ctx => ctx.context_code === context_code))
+      };
+    });
+
+    return groupedData;
+  }
+
   getRiskList() {
     const arrRiskList = [];
     for (const question_id in this.answers) {
@@ -263,7 +285,7 @@ class QuestionnaireEngine {
         if (risk_list && Array.isArray(risk_list) && risk_list.length > 0) {
           arrRiskList.push(...risk_list);
         }
-      });    
+      });
     }
     return arrRiskList
   }
@@ -277,7 +299,7 @@ class QuestionnaireEngine {
         if (trigger_list && Array.isArray(trigger_list) && trigger_list.length > 0) {
           arrTriggerList.push(...trigger_list);
         }
-      });    
+      });
     }
     return arrTriggerList
   }
@@ -290,9 +312,9 @@ class QuestionnaireEngine {
       const { answer_list, risk_score, question_indicator_flag, trigger_list, risk_list } = this.answers[question];
 
       for (const answerId in this.#objQuestionAnswerMapping[question]) {
-          const answer = this.#objQuestionAnswerMapping[question][answerId];
-          answer.has_selected = answer_list.includes(Number(answerId));
-          answers.push(answer);
+        const answer = this.#objQuestionAnswerMapping[question][answerId];
+        answer.has_selected = answer_list.includes(Number(answerId));
+        answers.push(answer);
       }
 
       finalOutcome.push({ ...eachQuestion, answers, risk_score, ...this.context, question_indicator_flag, trigger_list, risk_list });
@@ -303,13 +325,13 @@ class QuestionnaireEngine {
 
   getPayload() {
     const payload = [];
-    const deletedAnswers = [];    
-    
+    const deletedAnswers = [];
+
     for (const question_id in this.previousQuestionAnswerMapping) {
       const previousAnswers = this.previousQuestionAnswerMapping[question_id];
       previousAnswers.forEach(previousAnswerId => {
         const currentAnswers = this.answers[question_id].answer_list;
-        if(!currentAnswers.includes(previousAnswerId)) {
+        if (!currentAnswers.includes(previousAnswerId)) {
           const question = this.#objQuestionMapping[question_id];
           const answer = this.#objQuestionAnswerMapping[question_id][previousAnswerId];
           const { question_code } = question;

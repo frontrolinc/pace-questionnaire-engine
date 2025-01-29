@@ -9,7 +9,7 @@ class QuestionnaireEngine {
   basicInfoScore = '';
   basicInfoIndicatorFlag = '';
 
-  constructor(questionnaires, responses, context, riskCategoryMapping, riskAssessmentDetails) {
+  constructor(questionnaires, responses, context, riskCategoryMapping, riskAssessmentDetails, contextCodes) {
     this.questionnaires = questionnaires;
     this.responses = responses;
     this.context = context;
@@ -17,6 +17,7 @@ class QuestionnaireEngine {
     this.answers = {};
     this.finalScore = 0;
     this.previousQuestionAnswerMapping = {};
+    this.contextCodes = contextCodes;
 
     const { questionMapping, level1QuestionIds, basicInfoQuestionId } = this.#initQuestionMapping(questionnaires);
     const { questionAnswerMapping, linkedAnswerQuestionIds } = this.#initQuestionAnswerMapping(responses);
@@ -122,7 +123,8 @@ class QuestionnaireEngine {
         }
       }
       const sortedQuestions = level1QuestionAnswerMapping.sort((q1, q2) => (q1.display_sequence > q2.display_sequence) ? 1 : (q1.display_sequence < q2.display_sequence) ? -1 : 0);
-      return sortedQuestions;
+      const groupedQuestionsByContext = this.getGroupedDataByContext(sortedQuestions); 
+      return groupedQuestionsByContext;
     }
 
     if (currentQuestionId !== null && currentAnswerId !== null) {
@@ -226,6 +228,27 @@ class QuestionnaireEngine {
     this.answers[questionId] = { answer_list: answerIdList, risk_score: score, question_indicator_flag, trigger_list: arrTrigggerList, risk_list: arrRiskList };
     this.finalScore = this.finalScore + score - previousScore;
     return { score, question_indicator_flag, trigger_list: arrTrigggerList, risk_list: arrRiskList };
+  }
+
+
+  getGroupedDataByContext(data) {
+
+    const uniqueContextCodes = new Set();
+    data.forEach(item => {
+      item.context_code.forEach(ctx => {
+        uniqueContextCodes.add(ctx.context_code);
+      });
+    });
+
+    const groupedData = Array.from(uniqueContextCodes).map(context_code => {
+      return {
+        context_code,
+        context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
+        questions: data.filter(q => q.context_code.some(ctx => ctx.context_code === context_code))
+      };
+    });
+
+    return groupedData;
   }
 
   getRiskScoreAndCategory() {
