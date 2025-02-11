@@ -1,7 +1,7 @@
 class QuestionnaireEngine {
 
   #objQuestionMapping = {};
-  #objQuestionAnswerMapping  = {};
+  #objQuestionAnswerMapping = {};
   #arrLevel1QuestionsIds = [];
   #arrRiskCategoryMapping = [];
   #linkedAnswerQuestionIds = {};
@@ -50,12 +50,12 @@ class QuestionnaireEngine {
       const { question_id, answer_id, answer_scores, next_questionnaire_id } = responses[i];
       if (!this.answers[question_id]) {
         this.answers[question_id] = { answer_list: [], risk_score: 0 };
-      } 
+      }
       if (!questionAnswerMapping[question_id]) questionAnswerMapping[question_id] = {};
       if (!answer_scores) continue;
       questionAnswerMapping[question_id][answer_id] = responses[i];
       if (next_questionnaire_id) {
-        if(!linkedAnswerQuestionIds[question_id]) linkedAnswerQuestionIds[question_id] = {}; 
+        if (!linkedAnswerQuestionIds[question_id]) linkedAnswerQuestionIds[question_id] = {};
         linkedAnswerQuestionIds[question_id][answer_id] = next_questionnaire_id;
       }
     }
@@ -123,13 +123,13 @@ class QuestionnaireEngine {
         }
       }
       const sortedQuestions = level1QuestionAnswerMapping.sort((q1, q2) => (q1.display_sequence > q2.display_sequence) ? 1 : (q1.display_sequence < q2.display_sequence) ? -1 : 0);
-      const groupedQuestionsByContext = this.getGroupedDataByContext(sortedQuestions); 
+      const groupedQuestionsByContext = this.getGroupedDataByContext(sortedQuestions);
       return groupedQuestionsByContext;
     }
 
     if (currentQuestionId !== null && currentAnswerId !== null) {
       const answer = this.#objQuestionAnswerMapping[currentQuestionId][currentAnswerId];
-      
+
       if (!answer) {
         throw new Error('Please provide a valid answer id')
       }
@@ -157,7 +157,7 @@ class QuestionnaireEngine {
   updateScores(questionId, answerIdList) {
     const question = this.#objQuestionMapping[questionId];
 
-    if(!question) {
+    if (!question) {
       throw new Error('Please provide a valid question id')
     }
 
@@ -176,11 +176,11 @@ class QuestionnaireEngine {
 
     answerIdList.forEach(answerId => {
       const answer = this.#objQuestionAnswerMapping[questionId][answerId];
-      
+
       if (!answer) {
         throw new Error('Please provide a valid answer id')
       }
-      
+
       const { answer_scores = [], indicator_flag = '', trigger_list = [], risk_list = [] } = answer;
       arrIndicatorFlag.push(indicator_flag);
 
@@ -202,9 +202,9 @@ class QuestionnaireEngine {
             this.#objQuestionAnswerMapping[questionId][answerId][`answer_score`] = score;
           }
         });
-      }  
+      }
     });
-  
+
     let score;
     switch (score_logic) {
       case 'MAX':
@@ -256,7 +256,7 @@ class QuestionnaireEngine {
     let assigned_risk_score = this.finalScore;
     const { contract_value = 0, contract_type = '' } = this.context;
     let risk_category = '', risk_category_message = '';
-    
+
     if (calculated_risk_score < 50 && contract_value > 10000000) {
       assigned_risk_score = 50
       risk_category_message = 'If an opportunity/project has an estimated contract value of > $10M USD then a minimum total score of 50 will apply resulting in a C2 category.'
@@ -278,32 +278,71 @@ class QuestionnaireEngine {
   }
 
   getRiskList() {
-    const arrRiskList = [];
+    const riskMap = {};
+
     for (const question_id in this.answers) {
       const { answer_list } = this.answers[question_id];
+
       answer_list.forEach(answerId => {
-        const { risk_list = [] } = this.#objQuestionAnswerMapping[question_id][answerId]
+        const { risk_list = [], context_code = [] } = this.#objQuestionAnswerMapping[question_id][answerId];
         if (risk_list && Array.isArray(risk_list) && risk_list.length > 0) {
-          arrRiskList.push(...risk_list);
+          const contextCodes = Array.isArray(context_code)
+            ? context_code.map(c => c.context_code)
+            : [];
+
+          contextCodes.forEach(code => {
+            if (!riskMap[code]) {
+              riskMap[code] = [];
+            }
+            riskMap[code].push(...risk_list);
+          });
         }
-      });    
+      });
     }
-    return arrRiskList
+
+    const riskListByContext = Object.keys(riskMap).map(context_code => ({
+      context_code,
+      context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
+      riskList: riskMap[context_code]
+    }));
+    return riskListByContext
   }
 
+
   getTriggerList() {
-    const arrTriggerList = [];
+    const triggerMap = {};
+
     for (const question_id in this.answers) {
       const { answer_list } = this.answers[question_id];
+
       answer_list.forEach(answerId => {
-        const { trigger_list = [] } = this.#objQuestionAnswerMapping[question_id][answerId]
+        const { trigger_list = [], context_code = [] } = this.#objQuestionAnswerMapping[question_id][answerId];
+
         if (trigger_list && Array.isArray(trigger_list) && trigger_list.length > 0) {
-          arrTriggerList.push(...trigger_list);
+          const contextCodes = Array.isArray(context_code)
+            ? context_code.map(c => c.context_code)
+            : [];
+
+          contextCodes.forEach(code => {
+            if (!triggerMap[code]) {
+              triggerMap[code] = [];
+            }
+            triggerMap[code].push(...trigger_list.map(trigger => ({ trigger })));
+          });
         }
-      });    
+      });
     }
-    return arrTriggerList
+
+
+    const triggerlistByContext = Object.keys(triggerMap).map(context_code => ({
+      context_code,
+      context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
+      triggerList: triggerMap[context_code]
+    }));
+
+    return triggerlistByContext;
   }
+
 
   getFinalOutcome() {
     const finalOutcome = [];
@@ -313,9 +352,9 @@ class QuestionnaireEngine {
       const { answer_list, risk_score, question_indicator_flag, trigger_list, risk_list } = this.answers[question];
 
       for (const answerId in this.#objQuestionAnswerMapping[question]) {
-          const answer = this.#objQuestionAnswerMapping[question][answerId];
-          answer.has_selected = answer_list.includes(Number(answerId));
-          answers.push(answer);
+        const answer = this.#objQuestionAnswerMapping[question][answerId];
+        answer.has_selected = answer_list.includes(Number(answerId));
+        answers.push(answer);
       }
 
       finalOutcome.push({ ...eachQuestion, answers, risk_score, ...this.context, question_indicator_flag, trigger_list, risk_list });
@@ -326,13 +365,13 @@ class QuestionnaireEngine {
 
   getPayload() {
     const payload = [];
-    const deletedAnswers = [];    
-    
+    const deletedAnswers = [];
+
     for (const question_id in this.previousQuestionAnswerMapping) {
       const previousAnswers = this.previousQuestionAnswerMapping[question_id];
       previousAnswers.forEach(previousAnswerId => {
         const currentAnswers = this.answers[question_id].answer_list;
-        if(!currentAnswers.includes(previousAnswerId)) {
+        if (!currentAnswers.includes(previousAnswerId)) {
           const question = this.#objQuestionMapping[question_id];
           const answer = this.#objQuestionAnswerMapping[question_id][previousAnswerId];
           const { question_code } = question;
