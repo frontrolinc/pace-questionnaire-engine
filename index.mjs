@@ -357,7 +357,7 @@ class QuestionnaireEngine {
       finalOutcome.push({ ...eachQuestion, answers, risk_score, ...this.context, question_indicator_flag, trigger_list, risk_list });
     }
 
-    return finalOutcome;
+    return this.getGroupedDataByContext(finalOutcome);
   }
 
   getPayload() {
