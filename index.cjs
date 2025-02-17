@@ -129,6 +129,7 @@ class QuestionnaireEngine {
 
     if (currentQuestionId !== null && currentAnswerId !== null) {
       const answer = this.#objQuestionAnswerMapping[currentQuestionId][currentAnswerId];
+      // console.log("answer jere om 132", answer)
 
       if (!answer) {
         throw new Error('Please provide a valid answer id')
@@ -147,9 +148,11 @@ class QuestionnaireEngine {
           const answerList = answer_list.sort((a1, a2) => (a1.display_sequence > a2.display_sequence) ? 1 : (a1.display_sequence < a2.display_sequence) ? -1 : 0);
           nextQuestion = { ...question, answer_list: answerList };
         }
-        return nextQuestion;
+        return this.getGroupedDataByContext([nextQuestion]);
+        // return nextQuestion;
       } else {
-        return nextQuestion;
+        return this.getGroupedDataByContext([nextQuestion]);
+        // return nextQuestion;
       }
     }
   }
@@ -250,6 +253,8 @@ class QuestionnaireEngine {
 
     return groupedData;
   }
+
+
 
   getRiskScoreAndCategory() {
     const calculated_risk_score = this.finalScore;
