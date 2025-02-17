@@ -147,9 +147,12 @@ class QuestionnaireEngine {
           const answerList = answer_list.sort((a1, a2) => (a1.display_sequence > a2.display_sequence) ? 1 : (a1.display_sequence < a2.display_sequence) ? -1 : 0);
           nextQuestion = { ...question, answer_list: answerList };
         }
-        return nextQuestion;
+        // return nextQuestion;
+        return this.getGroupedDataByContext([nextQuestion]);
       } else {
-        return nextQuestion;
+        // return nextQuestion;
+        return this.getGroupedDataByContext([nextQuestion]);
+
       }
     }
   }
