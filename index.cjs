@@ -28,15 +28,17 @@ class QuestionnaireEngine {
     this.#basicInfoQuestionId = basicInfoQuestionId;
     this.#arrRiskCategoryMapping = riskCategoryMapping;
     this.#initPreviousAssessmentMapping(riskAssessmentDetails);
-    this.#initBasicInfoRiskScoreAndIndicatorFlag();
+    // this.#initBasicInfoRiskScoreAndIndicatorFlag();
   }
 
   #initQuestionMapping(questionnaires) {
     let questionMapping = {}, level1QuestionIds = [], basicInfoQuestionId = '';
     questionnaires.forEach(question => {
       const { question_id, question_level, question_title } = question;
-      (question_level === 1 && question_title !== 'FNTL Contract Type') && level1QuestionIds.push(question_id);
-      if (question_level === 1 && question_title === 'FNTL Contract Type') basicInfoQuestionId = question_id;
+      // (question_level === 1 && question_title !== 'FNTL Contract Type') && level1QuestionIds.push(question_id);
+      // if (question_level === 1 && question_title === 'FNTL Contract Type') basicInfoQuestionId = question_id;
+      (question_level === 1) && level1QuestionIds.push(question_id);
+      if (question_level === 1) basicInfoQuestionId = question_id;
       if (!questionMapping[question_id]) questionMapping[question_id] = {};
       questionMapping[question_id] = question;
     });
@@ -76,37 +78,37 @@ class QuestionnaireEngine {
     }
   }
 
-  #initBasicInfoRiskScoreAndIndicatorFlag() {
-    let score, question_indicator_flag;
-    if (this.#basicInfoQuestionId) {
-      let { contract_type = '' } = this.context
-      if (contract_type.includes('Fixed Price')) {
-        contract_type = 'Fixed Price'
-      } else if (contract_type.includes('T&M (with Cap)')) {
-        contract_type = 'T&M (with Cap)'
-      } else if (contract_type.includes('T&M')) {
-        contract_type = 'T&M'
-      } else if (contract_type.includes('CPFF')) {
-        contract_type = 'CPFF'
-      }
-      for (const answerId in this.#objQuestionAnswerMapping[this.#basicInfoQuestionId]) {
-        const { answer_title = '' } = this.#objQuestionAnswerMapping[this.#basicInfoQuestionId][answerId];
-        if (contract_type === answer_title) {
-          const { score: basicInfoScore, question_indicator_flag: basicInfoIndicatorFlag } = this.updateScores(this.#basicInfoQuestionId, [Number(answerId)]);
-          [score, question_indicator_flag] = [basicInfoScore, basicInfoIndicatorFlag];
-        }
-      }
+  // #initBasicInfoRiskScoreAndIndicatorFlag() {
+  //   let score, question_indicator_flag;
+  //   if (this.#basicInfoQuestionId) {
+  //     let { contract_type = '' } = this.context
+  //     if (contract_type.includes('Fixed Price')) {
+  //       contract_type = 'Fixed Price'
+  //     } else if (contract_type.includes('T&M (with Cap)')) {
+  //       contract_type = 'T&M (with Cap)'
+  //     } else if (contract_type.includes('T&M')) {
+  //       contract_type = 'T&M'
+  //     } else if (contract_type.includes('CPFF')) {
+  //       contract_type = 'CPFF'
+  //     }
+  //     for (const answerId in this.#objQuestionAnswerMapping[this.#basicInfoQuestionId]) {
+  //       const { answer_title = '' } = this.#objQuestionAnswerMapping[this.#basicInfoQuestionId][answerId];
+  //       if (contract_type === answer_title) {
+  //         const { score: basicInfoScore, question_indicator_flag: basicInfoIndicatorFlag } = this.updateScores(this.#basicInfoQuestionId, [Number(answerId)]);
+  //         [score, question_indicator_flag] = [basicInfoScore, basicInfoIndicatorFlag];
+  //       }
+  //     }
 
-      if (!(score >= 0 && question_indicator_flag)) {
-        throw new Error('Basic Details not found');
-      };
+  //     if (!(score >= 0 && question_indicator_flag)) {
+  //       throw new Error('Basic Details not found');
+  //     };
 
-      [this.basicInfoScore, this.basicInfoIndicatorFlag] = [score, question_indicator_flag];
-      return;
-    } else {
-      throw new Error('FNTL Contract Type question not found');
-    }
-  }
+  //     [this.basicInfoScore, this.basicInfoIndicatorFlag] = [score, question_indicator_flag];
+  //     return;
+  //   } else {
+  //     throw new Error('FNTL Contract Type question not found');
+  //   }
+  // }
 
   getNextQuestions(currentQuestionId = null, currentAnswerId = null) {
     const level1QuestionAnswerMapping = [];
@@ -235,22 +237,20 @@ class QuestionnaireEngine {
 
 
   getGroupedDataByContext(data) {
-
     const uniqueContextCodes = new Set();
+    
     data.forEach(item => {
-      item.context_code.forEach(ctx => {
-        uniqueContextCodes.add(ctx.context_code);
-      });
+      uniqueContextCodes.add(item.context_code);
     });
-
+  
     const groupedData = Array.from(uniqueContextCodes).map(context_code => {
       return {
         context_code,
-        context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
-        questions: data.filter(q => q.context_code.some(ctx => ctx.context_code === context_code))
+        context_name: this.contextCodes.find(ctx => ctx.context_code == context_code)?.context_name || "Unknown",
+        questions: data.filter(q => q.context_code === context_code)
       };
     });
-
+  
     return groupedData;
   }
 
