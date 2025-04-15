@@ -271,8 +271,8 @@ class QuestionnaireEngine {
     const groupedData = Array.from(uniqueContextCodes).map(context_code => {
       return {
         context_code,
-        context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
-        questions: data.filter(q => q.context_code === context_code)
+        context_name: this.contextCodes.find(ctx => ctx.context_code == context_code)?.context_name || "Unknown",
+        questions: data.filter(q => q.context_code == context_code)
       };
     });
   
