@@ -279,69 +279,63 @@ class QuestionnaireEngine {
     return groupedData;
   }
 
-  getRiskList() {
-    const riskMap = {};
-
-    for (const question_id in this.answers) {
-      const { answer_list } = this.answers[question_id];
-
-      answer_list.forEach(answerId => {
-        const { risk_list = [], context_code = [] } = this.#objQuestionAnswerMapping[question_id][answerId];
-        if (risk_list && Array.isArray(risk_list) && risk_list.length > 0) {
-          const contextCodes = Array.isArray(context_code)
-            ? context_code.map(c => c.context_code)
-            : [];
-
-          contextCodes.forEach(code => {
-            if (!riskMap[code]) {
-              riskMap[code] = [];
-            }
-            riskMap[code].push(...risk_list);
-          });
-        }
-      });
-    }
-
-    const riskListByContext = Object.keys(riskMap).map(context_code => ({
-      context_code,
-      context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
-      riskList: riskMap[context_code]
-    }));
-    return riskListByContext
-  }
-
   getTriggerList() {
     const triggerMap = {};
-
+  
     for (const question_id in this.answers) {
       const { answer_list } = this.answers[question_id];
-
+  
       answer_list.forEach(answerId => {
-        const { trigger_list = [], context_code = [] } = this.#objQuestionAnswerMapping[question_id][answerId];
-
-        if (trigger_list && Array.isArray(trigger_list) && trigger_list.length > 0) {
-          const contextCodes = Array.isArray(context_code)
-            ? context_code.map(c => c.context_code)
-            : [];
-
-          contextCodes.forEach(code => {
-            if (!triggerMap[code]) {
-              triggerMap[code] = [];
-            }
-            triggerMap[code].push(...trigger_list.map(trigger => ({ trigger })));
-          });
+        const { trigger_list = [], context_code } = this.#objQuestionAnswerMapping[question_id][answerId];
+  
+        if (Array.isArray(trigger_list) && trigger_list.length > 0 && context_code) {
+          const code = context_code; // assuming context_code is now a string
+  
+          if (!triggerMap[code]) {
+            triggerMap[code] = [];
+          }
+          triggerMap[code].push(...trigger_list.map(trigger => ({ trigger })));
         }
       });
     }
-
-
+  
     const triggerlistByContext = Object.keys(triggerMap).map(context_code => ({
       context_code,
       context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
       triggerList: triggerMap[context_code]
     }));
-
+  
     return triggerlistByContext;
+  }
+
+  
+  getRiskList() {
+    const riskMap = {};
+  
+    for (const question_id in this.answers) {
+      const { answer_list } = this.answers[question_id];
+  
+      answer_list.forEach(answerId => {
+        const { risk_list = [], context_code } = this.#objQuestionAnswerMapping[question_id][answerId];
+  
+        if (Array.isArray(risk_list) && risk_list.length > 0 && context_code) {
+          const code = context_code; // assuming context_code is now a string
+  
+          if (!riskMap[code]) {
+            riskMap[code] = [];
+          }
+          riskMap[code].push(...risk_list);
+        }
+      });
+    }
+  
+    const riskListByContext = Object.keys(riskMap).map(context_code => ({
+      context_code,
+      context_name: this.contextCodes.find(ctx => ctx.context_code === context_code)?.context_name || "Unknown",
+      riskList: [...new Set(riskMap[context_code])] // optional: remove duplicates
+    }));
+  
+    return riskListByContext;
   }
 
   getFinalOutcome() {
